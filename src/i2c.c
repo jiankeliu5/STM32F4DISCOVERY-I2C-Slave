@@ -13,6 +13,7 @@
   * @retval None
   */
 void initI2C() {
+	I2C_InitTypeDef I2C_InitStruct;
 
 }
 
