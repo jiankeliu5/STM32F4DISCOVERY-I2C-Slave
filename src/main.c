@@ -15,8 +15,8 @@ uint32_t delay = 0;
 
 void SysTick_Handler(void){
 	if (delay > 0){
-			delay--;
-		}
+		delay--;
+	}
 }
 
 void delay_ms(uint32_t value){
