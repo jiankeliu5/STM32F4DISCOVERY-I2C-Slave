@@ -25,6 +25,10 @@
 /* define ADDRESS I2C*/
 #define ADDRESS				0x30
 
+/* define size of buffer*/
+#define SIZE_INPUT_BUFFER	100
+#define SIZE_OUTPUT_BUFFER	100
+
 #if defined(I2C1_1_BUS)
 #define I2C					I2C1
 #define SDA_PIN				GPIO_Pin_7
@@ -90,7 +94,7 @@
 #endif
 
 void initI2C(void);
-void sendI2C(uint8_t*);
+void sendI2C(uint8_t*, uint8_t);
 void receiveI2C(uint8_t*);
 
 #endif /* I2C_H_ */

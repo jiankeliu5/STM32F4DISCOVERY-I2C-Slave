@@ -7,6 +7,13 @@
 
 #include "i2c.h"
 
+uint8_t data_in[SIZE_INPUT_BUFFER];
+uint8_t data_out[SIZE_OUTPUT_BUFFER];
+uint8_t indexOfBuffer = 0;
+uint8_t sizeInputMessage = 0;
+uint8_t sizeOutputMessage = 0;
+uint8_t err_status = 0;
+
 /**
   * @brief  Initializes I2C module
   * @param  None
@@ -23,7 +30,7 @@ void initI2C() {
 	GPIO_InitSructure.GPIO_Pin = SDA_PIN;
 	GPIO_InitSructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitSructure.GPIO_Speed = GPIO_High_Speed;
-	GPIO_Init(GPIO_SDA_PORT, GPIO_InitSructure);
+	GPIO_Init(GPIO_SDA_PORT, &GPIO_InitSructure);
 	GPIO_PinAFConfig(GPIO_SDA_PORT, SDA_PinSource, GPIO_AF_I2C);
 
 	// Configure SDA pin
@@ -33,7 +40,7 @@ void initI2C() {
 	GPIO_InitSructure.GPIO_Pin = SCL_PIN;
 	GPIO_InitSructure.GPIO_PuPd = GPIO_PuPd_UP;
 	GPIO_InitSructure.GPIO_Speed = GPIO_High_Speed;
-	GPIO_Init(GPIO_SCL_PORT, GPIO_InitSructure);
+	GPIO_Init(GPIO_SCL_PORT, &GPIO_InitSructure);
 	GPIO_PinAFConfig(GPIO_SDA_PORT, SCL_PinSource, GPIO_AF_I2C);
 
 	// Configure I2C bus
@@ -57,8 +64,13 @@ void initI2C() {
   * @param  buffer is an array where the message is stored
   * @retval None
   */
-void sendI2C(uint8_t* buffer) {
-
+void sendI2C(uint8_t* buffer, uint8_t size) {
+	uint8_t j = 0;
+	for (j = 0; j < size; j++) {
+		data_out[j] = buffer[j];
+		buffer[j]  = 0;
+	}
+	sizeOutputMessage = size;
 }
 
 /**
@@ -66,7 +78,68 @@ void sendI2C(uint8_t* buffer) {
   * @param  buffer is an array where the message is saved
   * @retval None
   */
-void receiveI2C(uint8_t* buffer) {
+void receiveI2C(uint8_t* buffer, uint8_t* size) {
+	uint8_t j = 0;
+	size = sizeInputMessage;
+	for (j = 0; j < sizeInputMessage; j++) {
+		buffer[j] = data_in[j];
+		data_in[j] = 0;
+	}
+	sizeInputMessage = 0;
+}
 
+/**
+  * @brief	Function event handler.
+  * @param  None
+  * @retval None
+  */
+void I2C1_EV_IRQHandler() {
+	if(I2C_GetITStatus(I2C, I2C_IT_ADDR) == SET) {
+		(void)(I2C->SR2);
+
+	}
+	// receive mode
+	if(I2C_GetITStatus(I2C, I2C_IT_RXNE) == SET) {
+		data_in[indexOfBuffer++] = I2C -> DR;
+		sizeInputMessage = indexOfBuffer;
+	}
+	// transmit mode
+	if (I2C_GetFlagStatus(I2C, I2C_FLAG_TRA) == SET) {
+		if(I2C_GetITStatus(I2C, I2C_IT_TXE) == SET) {
+			I2C -> DR = data_out[indexOfBuffer++];
+			if (indexOfBuffer == sizeOutputMessage) {
+				I2C_AcknowledgeConfig(I2C, DISABLE);
+				sizeOutputMessage = 0;
+			}
+		}
+	}
+	if(I2C_GetITStatus(I2C, I2C_IT_STOPF) == SET) {
+		I2C_Cmd(I2C, ENABLE);
+		indexOfBuffer = 0;
+	}
+}
+
+/**
+  * @brief	Function error handler.
+  * @param  None
+  * @retval None
+  */
+void I2C1_ER_IRQHandler() {
+	if(I2C_GetITStatus(I2C1, I2C_IT_OVR)) {
+		err_status = 1;
+		I2C_ClearFlag(I2C1, I2C_FLAG_OVR);
+	}
+	else if(I2C_GetITStatus(I2C1, I2C_IT_AF)) {
+		err_status = 2;
+		I2C_ClearFlag(I2C1, I2C_FLAG_AF);
+	}
+	else if(I2C_GetITStatus(I2C1, I2C_IT_ARLO)) {
+		err_status = 3;
+		I2C_ClearFlag(I2C1, I2C_FLAG_ARLO);
+	}
+	else if(I2C_GetITStatus(I2C1, I2C_IT_BERR)) {
+		err_status = 4;
+		I2C_ClearFlag(I2C1, I2C_FLAG_BERR);
+	}
 }
 
