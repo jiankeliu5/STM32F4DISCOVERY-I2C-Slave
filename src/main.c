@@ -10,6 +10,7 @@
 
 
 #include "stm32f4xx.h"
+#include "i2c.h"
 			
 uint32_t delay = 0;
 
@@ -28,6 +29,8 @@ int main(void)
 {
 	SystemCoreClockUpdate();
 	SysTick_Config(SystemCoreClock/1000);
+
+	initI2C();
 
 	while(1) {
 	}

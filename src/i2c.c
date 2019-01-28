@@ -12,7 +12,7 @@ uint8_t data_out[SIZE_OUTPUT_BUFFER];
 uint8_t indexOfBuffer = 0;
 uint8_t sizeInputMessage = 0;
 uint8_t sizeOutputMessage = 0;
-uint8_t err_status = 0;
+uint8_t errStatus = 0;
 
 /**
   * @brief  Initializes I2C module
@@ -44,6 +44,7 @@ void initI2C() {
 	GPIO_PinAFConfig(GPIO_SDA_PORT, SCL_PinSource, GPIO_AF_I2C);
 
 	// Configure I2C bus
+	RCC_APB1PeriphClockCmd(RCC_I2C, ENABLE);
 	I2C_InitStructure.I2C_ClockSpeed = 100000;
 	I2C_InitStructure.I2C_Mode = I2C_Mode_I2C;
 	I2C_InitStructure.I2C_DutyCycle = I2C_DutyCycle_2;
@@ -80,14 +81,13 @@ void sendI2C(uint8_t* buffer, uint8_t size) {
   */
 void receiveI2C(uint8_t* buffer, uint8_t* size) {
 	uint8_t j = 0;
-	size = sizeInputMessage;
+	*size = sizeInputMessage;
 	for (j = 0; j < sizeInputMessage; j++) {
 		buffer[j] = data_in[j];
 		data_in[j] = 0;
 	}
 	sizeInputMessage = 0;
 }
-
 /**
   * @brief	Function event handler.
   * @param  None
@@ -96,7 +96,6 @@ void receiveI2C(uint8_t* buffer, uint8_t* size) {
 void I2C1_EV_IRQHandler() {
 	if(I2C_GetITStatus(I2C, I2C_IT_ADDR) == SET) {
 		(void)(I2C->SR2);
-
 	}
 	// receive mode
 	if(I2C_GetITStatus(I2C, I2C_IT_RXNE) == SET) {
@@ -126,19 +125,19 @@ void I2C1_EV_IRQHandler() {
   */
 void I2C1_ER_IRQHandler() {
 	if(I2C_GetITStatus(I2C1, I2C_IT_OVR)) {
-		err_status = 1;
+		errStatus = 1;
 		I2C_ClearFlag(I2C1, I2C_FLAG_OVR);
 	}
 	else if(I2C_GetITStatus(I2C1, I2C_IT_AF)) {
-		err_status = 2;
+		errStatus = 2;
 		I2C_ClearFlag(I2C1, I2C_FLAG_AF);
 	}
 	else if(I2C_GetITStatus(I2C1, I2C_IT_ARLO)) {
-		err_status = 3;
+		errStatus = 3;
 		I2C_ClearFlag(I2C1, I2C_FLAG_ARLO);
 	}
 	else if(I2C_GetITStatus(I2C1, I2C_IT_BERR)) {
-		err_status = 4;
+		errStatus = 4;
 		I2C_ClearFlag(I2C1, I2C_FLAG_BERR);
 	}
 }
