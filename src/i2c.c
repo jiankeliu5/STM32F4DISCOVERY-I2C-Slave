@@ -7,12 +7,13 @@
 
 #include "i2c.h"
 
-uint8_t data_in[SIZE_INPUT_BUFFER];
+
 uint8_t data_out[SIZE_OUTPUT_BUFFER];
 uint8_t indexOfBuffer = 0;
-uint8_t sizeInputMessage = 0;
 uint8_t sizeOutputMessage = 0;
 uint8_t errStatus = 0;
+
+I2CInterface i2cInputBuffer;
 
 /**
   * @brief  Initializes I2C module
@@ -57,6 +58,12 @@ void initI2C() {
 	I2C_Cmd(I2C, ENABLE);
 	NVIC_EnableIRQ(I2C_ER_IRQn);
 	NVIC_EnableIRQ(I2C_EV_IRQn);
+
+	uint8_t i = 0;
+	for (i = 0; i < sizeof(i2cInputBuffer.data_in); i++) {
+		i2cInputBuffer.data_in[i] = 0;
+	}
+	i2cInputBuffer.size = 0;
 }
 
 /**
@@ -72,6 +79,7 @@ void sendI2C(uint8_t* buffer, uint8_t size) {
 		buffer[j]  = 0;
 	}
 	sizeOutputMessage = size;
+	indexOfBuffer = 0;
 }
 
 /**
@@ -79,14 +87,8 @@ void sendI2C(uint8_t* buffer, uint8_t size) {
   * @param  buffer is an array where the message is saved
   * @retval None
   */
-void receiveI2C(uint8_t* buffer, uint8_t* size) {
-	uint8_t j = 0;
-	*size = sizeInputMessage;
-	for (j = 0; j < sizeInputMessage; j++) {
-		buffer[j] = data_in[j];
-		data_in[j] = 0;
-	}
-	sizeInputMessage = 0;
+I2CInterface* receiveI2C() {
+	return &i2cInputBuffer;
 }
 /**
   * @brief	Function event handler.
@@ -99,22 +101,24 @@ void I2C1_EV_IRQHandler() {
 	}
 	// receive mode
 	if(I2C_GetITStatus(I2C, I2C_IT_RXNE) == SET) {
-		data_in[indexOfBuffer++] = I2C -> DR;
-		sizeInputMessage = indexOfBuffer;
+		i2cInputBuffer.data_in[indexOfBuffer++] = I2C->DR;
+		i2cInputBuffer.size = indexOfBuffer;
 	}
 	// transmit mode
 	if (I2C_GetFlagStatus(I2C, I2C_FLAG_TRA) == SET) {
 		if(I2C_GetITStatus(I2C, I2C_IT_TXE) == SET) {
-			I2C -> DR = data_out[indexOfBuffer++];
+			I2C->DR = data_out[indexOfBuffer++];
 			if (indexOfBuffer == sizeOutputMessage) {
-				I2C_AcknowledgeConfig(I2C, DISABLE);
 				sizeOutputMessage = 0;
+				indexOfBuffer = 0;
 			}
 		}
 	}
 	if(I2C_GetITStatus(I2C, I2C_IT_STOPF) == SET) {
 		I2C_Cmd(I2C, ENABLE);
-		indexOfBuffer = 0;
+		if(indexOfBuffer > 0) {
+			i2cInputBuffer.flagInputMessage = true;
+		}
 	}
 }
 

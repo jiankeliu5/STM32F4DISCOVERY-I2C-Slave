@@ -9,6 +9,7 @@
 #define I2C_H_
 
 #include "stm32f4xx.h"
+#include "stdbool.h"
 
 /* define one of I2C bus*/
 /* info about I2C bus
@@ -93,8 +94,14 @@
 #define I2C_ER_IRQn			I2C3_ER_IRQn
 #endif
 
+typedef struct {
+	bool flagInputMessage;
+	uint8_t data_in[100];
+	uint8_t size;
+}I2CInterface;
+
 void initI2C(void);
 void sendI2C(uint8_t*, uint8_t);
-void receiveI2C(uint8_t*, uint8_t*);
+I2CInterface* receiveI2C();
 
 #endif /* I2C_H_ */
