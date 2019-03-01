@@ -34,7 +34,7 @@ void initI2C() {
 	GPIO_Init(GPIO_SDA_PORT, &GPIO_InitSructure);
 	GPIO_PinAFConfig(GPIO_SDA_PORT, SDA_PinSource, GPIO_AF_I2C);
 
-	// Configure SDA pin
+	// Configure SCL pin
 	RCC_AHB1PeriphClockCmd(RCC_I2C_SCL_PORT, ENABLE);
 	GPIO_InitSructure.GPIO_Mode = GPIO_Mode_AF;
 	GPIO_InitSructure.GPIO_OType = GPIO_OType_OD;
@@ -58,6 +58,7 @@ void initI2C() {
 	I2C_Cmd(I2C, ENABLE);
 	NVIC_EnableIRQ(I2C_ER_IRQn);
 	NVIC_EnableIRQ(I2C_EV_IRQn);
+	//I2C_StretchClockCmd(I2C, ENABLE);
 
 	uint8_t i = 0;
 	for (i = 0; i < sizeof(i2cInputBuffer.data_in); i++) {
@@ -76,10 +77,11 @@ void sendI2C(uint8_t* buffer, uint8_t size) {
 	uint8_t j = 0;
 	for (j = 0; j < size; j++) {
 		data_out[j] = buffer[j];
-		buffer[j]  = 0;
+		//buffer[j]  = 0;
 	}
 	sizeOutputMessage = size;
-	indexOfBuffer = 0;
+	(void)(I2C->SR1); //
+	(void)(I2C->SR2); // clear ADDR or BTF flag
 }
 
 /**
@@ -97,7 +99,10 @@ I2CInterface* receiveI2C() {
   */
 void I2C1_EV_IRQHandler() {
 	if(I2C_GetITStatus(I2C, I2C_IT_ADDR) == SET) {
-		(void)(I2C->SR2);
+		if (I2C_GetFlagStatus(I2C, I2C_FLAG_TRA) == RESET) { // input mode
+			(void)(I2C->SR1); //
+			(void)(I2C->SR2); // clear ADDR or BTF flag
+		}
 	}
 	// receive mode
 	if(I2C_GetITStatus(I2C, I2C_IT_RXNE) == SET) {
@@ -105,19 +110,20 @@ void I2C1_EV_IRQHandler() {
 		i2cInputBuffer.size = indexOfBuffer;
 	}
 	// transmit mode
-	if (I2C_GetFlagStatus(I2C, I2C_FLAG_TRA) == SET) {
-		if(I2C_GetITStatus(I2C, I2C_IT_TXE) == SET) {
-			I2C->DR = data_out[indexOfBuffer++];
-			if (indexOfBuffer == sizeOutputMessage) {
-				sizeOutputMessage = 0;
-				indexOfBuffer = 0;
-			}
+	if(I2C_GetITStatus(I2C, I2C_IT_TXE) == SET) {
+		I2C->DR = data_out[indexOfBuffer++];
+		if (indexOfBuffer == sizeOutputMessage) {
+			sizeOutputMessage = 0;
+			indexOfBuffer = 0;
 		}
 	}
+
 	if(I2C_GetITStatus(I2C, I2C_IT_STOPF) == SET) {
 		I2C_Cmd(I2C, ENABLE);
 		if(indexOfBuffer > 0) {
 			i2cInputBuffer.flagInputMessage = true;
+			i2cInputBuffer.size = indexOfBuffer;
+			indexOfBuffer = 0;
 		}
 	}
 }
