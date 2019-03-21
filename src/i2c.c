@@ -24,16 +24,6 @@ void initI2C() {
 	I2C_InitTypeDef I2C_InitStructure;
 	GPIO_InitTypeDef GPIO_InitSructure;
 
-	// Configure SDA pin
-	RCC_AHB1PeriphClockCmd(RCC_I2C_SDA_PORT, ENABLE);
-	GPIO_InitSructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitSructure.GPIO_OType = GPIO_OType_OD;
-	GPIO_InitSructure.GPIO_Pin = SDA_PIN;
-	GPIO_InitSructure.GPIO_PuPd = GPIO_PuPd_UP;
-	GPIO_InitSructure.GPIO_Speed = GPIO_High_Speed;
-	GPIO_Init(GPIO_SDA_PORT, &GPIO_InitSructure);
-	GPIO_PinAFConfig(GPIO_SDA_PORT, SDA_PinSource, GPIO_AF_I2C);
-
 	// Configure SCL pin
 	RCC_AHB1PeriphClockCmd(RCC_I2C_SCL_PORT, ENABLE);
 	GPIO_InitSructure.GPIO_Mode = GPIO_Mode_AF;
@@ -43,6 +33,16 @@ void initI2C() {
 	GPIO_InitSructure.GPIO_Speed = GPIO_High_Speed;
 	GPIO_Init(GPIO_SCL_PORT, &GPIO_InitSructure);
 	GPIO_PinAFConfig(GPIO_SDA_PORT, SCL_PinSource, GPIO_AF_I2C);
+
+	// Configure SDA pin
+	RCC_AHB1PeriphClockCmd(RCC_I2C_SDA_PORT, ENABLE);
+	GPIO_InitSructure.GPIO_Mode = GPIO_Mode_AF;
+	GPIO_InitSructure.GPIO_OType = GPIO_OType_OD;
+	GPIO_InitSructure.GPIO_Pin = SDA_PIN;
+	GPIO_InitSructure.GPIO_PuPd = GPIO_PuPd_UP;
+	GPIO_InitSructure.GPIO_Speed = GPIO_High_Speed;
+	GPIO_Init(GPIO_SDA_PORT, &GPIO_InitSructure);
+	GPIO_PinAFConfig(GPIO_SDA_PORT, SDA_PinSource, GPIO_AF_I2C);
 
 	// Configure I2C bus
 	RCC_APB1PeriphClockCmd(RCC_I2C, ENABLE);
